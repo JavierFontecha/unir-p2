@@ -1,0 +1,35 @@
+- name: Desplegar aplicación en AKS
+  hosts: aks
+  gather_facts: no
+  vars_files:
+    - ../../secrets.yaml  # Asegúrate de tener tus secretos correctamente configurados
+  tasks:
+
+    - name: Crear namespace en AKS
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ app_namespace }}"
+      register: namespace_result
+      until: namespace_result is succeeded
+      retries: 5
+      delay: 5
+
+    # Lista de archivos a desplegar
+    - name: Desplegar recursos en AKS
+      community.kubernetes.k8s:
+        state: present
+        definition: "{{ lookup('template', item) }}"
+        namespace: "{{ app_namespace }}"
+      loop:
+        - "secret-acr.yml.j2"
+        - "pvc-redis.yml.j2"
+        - "backend-deployment.yml.j2"
+        - "backend-service.yml.j2"
+        - "frontend-deployment.yml.j2"
+        - "frontend-service.yml.j2"
+      loop_control:
+        loop_var: item

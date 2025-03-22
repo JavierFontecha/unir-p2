@@ -1,0 +1,38 @@
+- name: Configurar la VM con Podman y desplegar servidor web
+  hosts: vm
+  vars_files:
+    - ../../secrets.yaml
+
+  tasks:
+    - name: Instalar Podman en la VM (como root)
+      become: yes
+      apt:
+        name: podman
+        state: present
+        update_cache: yes
+
+    - name: Crear directorio de configuración para Podman (rootless)
+      file:
+        path: "/home/{{ ansible_user }}/.config/containers"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: Iniciar sesión en ACR con Podman (como usuario normal)
+      become: no
+      containers.podman.podman_login:
+        registry: "{{ acr_name }}.azurecr.io"
+        username: "{{ acr_username }}"
+        password: "{{ acr_password }}"
+
+    - name: Desplegar contenedor Nginx con Podman (como usuario normal)
+      become: no
+      containers.podman.podman_container:
+        name: webserver
+        image: devopsacrunir2025.azurecr.io/nginx:casopractico2
+        state: started
+        recreate: yes
+        pull: always
+        ports:
+          - "8080:80"

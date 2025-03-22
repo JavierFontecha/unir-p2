@@ -1,0 +1,3 @@
+azure-voting-app-redis/
+.terraform/
+.terraform.lock.hcl

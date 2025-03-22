@@ -1,0 +1,42 @@
+---
+- name: Gestionar imágenes de Docker con Podman
+  hosts: acr
+  gather_facts: no
+  vars_files:
+  - ../../secrets.yaml
+
+  tasks:
+    - name: Descargar imágenes
+      containers.podman.podman_image:
+        name: "{{ item }}"
+        state: present
+        pull: yes
+      loop:
+        - "docker.io/nginx:latest"
+        - "mcr.microsoft.com/oss/bitnami/redis:6.0.8"
+        - "docker.io/fonte99/azure-vote-front:v1"
+
+    - name: Etiquetar múltiples imágenes
+      containers.podman.podman_tag:
+        image: "{{ item.image }}"
+        target_names: "devopsacrunir2025.azurecr.io/{{ item.result }}"
+      loop:
+        - { image: "docker.io/nginx:latest", result: "nginx:casopractico2" }
+        - { image: "mcr.microsoft.com/oss/bitnami/redis:6.0.8", result: "redis:casopractico2" }
+        - { image: "docker.io/fonte99/azure-vote-front:v1", result: "azure-vote-front:casopractico2" }
+
+    - name: Iniciar sesión en el registro de contenedores
+      containers.podman.podman_login:
+        username: "{{ acr_username }}"
+        password: "{{ acr_password }}"
+        registry: devopsacrunir2025.azurecr.io
+
+    - name: Push imagenes al ACR
+      containers.podman.podman_image:
+        name: "devopsacrunir2025.azurecr.io/{{ item }}"
+        tag: "casopractico2"
+        push: yes
+      loop:
+        - "nginx:casopractico2" 
+        - "redis:casopractico2"
+        - "azure-vote-front:casopractico2"
