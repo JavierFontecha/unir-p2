@@ -1,1 +1,2 @@
 aks.config
+secret-acr.yml.j2
